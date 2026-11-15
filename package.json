@@ -1,0 +1,19 @@
+{
+  "name": "poker-trainer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Offline poker trainer PWA - play fake-chip poker against bots and learn.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "7.3.8",
+    "vitest": "3.2.7"
+  }
+}
