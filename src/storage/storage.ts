@@ -18,6 +18,8 @@ export interface Settings {
   botDelay: number;
   /** Show bot style labels (Rock, Maniac…) at the table. */
   showStyles: boolean;
+  /** Show the coach: hand ratings, win chance and pot odds. */
+  coach: boolean;
 }
 
 export const STARTING_BANKROLL = 20_000;
@@ -25,7 +27,7 @@ export const STARTING_BANKROLL = 20_000;
 export const defaultState = (): SavedState => ({
   bankroll: STARTING_BANKROLL,
   tableStack: 0,
-  settings: { botDelay: 700, showStyles: true },
+  settings: { botDelay: 700, showStyles: true, coach: true },
   stats: { handsPlayed: 0, biggestPot: 0 },
 });
 

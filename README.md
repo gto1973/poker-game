@@ -12,7 +12,7 @@ better at poker. Fake chips only: no real money, no accounts, no server.
 | 2 | Playable table: cash game vs simple bots, installable offline PWA | ✅ done |
 | 3 | Bot personalities: skill levels, tight/loose, bluff frequency, tilt | next (6 basic styles in place) |
 | 4 | Tournament mode (Sit & Go): rising blinds, payouts | |
-| 5 | Coach: live odds, hints, hand review, stats | |
+| 5 | Coach: live odds, hints, hand review, stats | ✅ odds, hints & guide done (hand review, stats to come) |
 | 6 | Polish: animations, sound, haptics, settings | |
 
 Target device: iPhone SE (3rd gen), portrait 375×667.
@@ -36,6 +36,7 @@ src/engine/   rules and maths, no UI (fully unit-tested)
   holdem.ts     No-Limit Hold'em hand state machine
   equity.ts     Monte Carlo win probability, pot odds
 src/ai/       bots: Chen-formula preflop, Monte Carlo postflop, personalities
+src/coach/    hand tiers, win chance, pot odds, advice (never sees opponents' cards)
 src/game/     cash game table (seating, button, bot replacement), hand log
 src/storage/  bankroll and settings in localStorage
 src/ui/       Preact components and CSS

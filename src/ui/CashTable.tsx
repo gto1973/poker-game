@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { CashGame, HUMAN_ID, type Seat } from '../game/cashGame';
 import type { HandEvent, HoldemHand, PlayerAction, PlayerState } from '../engine/holdem';
 import { eventText } from '../game/handLog';
@@ -6,6 +6,10 @@ import type { Settings } from '../storage/storage';
 import { CardView, CardSlot } from './CardView';
 import { ActionBar } from './ActionBar';
 import { chips, heroHandText } from './format';
+import { coach } from '../coach/coach';
+import { CoachSummary, CoachSheet } from './CoachPanel';
+import { Guide } from './Guide';
+import { handClass } from '../ai/preflop';
 
 export const CASH_BLINDS = { small: 10, big: 20 };
 export const CASH_BUY_IN = 2000;
@@ -60,6 +64,8 @@ export function CashTable({ startingStack, settings, onHandDone, onRebuy, onLeav
   const [shownBoard, setShownBoard] = useState(0);
   const [showLog, setShowLog] = useState(false);
   const [infoSeat, setInfoSeat] = useState<Seat | null>(null);
+  const [showCoach, setShowCoach] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const reportedHand = useRef(0);
 
   const deal = () => {
@@ -130,13 +136,41 @@ export function CashTable({ startingStack, settings, onHandDone, onRebuy, onLeav
   const collectedPot = hand ? hand.potTotal - hand.players.reduce((s, p) => s + p.bet, 0) : 0;
   const humanTurn = game.isHumanTurn() && boardCaughtUp;
   const net = handOver && me ? hand!.result!.net[HUMAN_ID]! : 0;
+  const myPosition = positions[0] ?? '';
+
+  // Coach: only uses what you can see (your cards, the board, pot, bets).
+  const coachActive = settings.coach && !!hand && !!me && !me.folded && !hand.isComplete;
+  const opponents = hand ? hand.players.filter((p) => p.id !== HUMAN_ID && !p.folded).length : 0;
+  const callAmount = coachActive && humanTurn ? hand!.legalActions().callAmount : 0;
+  const potNow = hand?.potTotal ?? 0;
+  const facingRaise = !!hand && hand.events.some((e) => e.type === 'action' && e.street === 'preflop' && e.action === 'raise');
+  const coaching = useMemo(
+    () =>
+      coachActive && me
+        ? coach({
+            hole: me.hole,
+            board,
+            opponents,
+            callAmount,
+            pot: potNow,
+            position: myPosition,
+            facingRaise,
+            seed: game.handNumber * 7919 + board.length * 31 + opponents,
+          })
+        : null,
+    [coachActive, game.handNumber, board.length, opponents, callAmount, potNow, facingRaise],
+  );
+  const myHandText = me && !me.folded ? heroHandText(me.hole, board) : me?.folded ? 'Folded' : '';
 
   return (
     <div class="screen table-screen">
       <header class="topbar">
         <button class="btn-link" onClick={leave}>‹ Leave</button>
         <div class="topbar-title">Cash · {chips(CASH_BLINDS.small)}/{chips(CASH_BLINDS.big)}</div>
-        <button class="btn-link" onClick={() => setShowLog(!showLog)}>{showLog ? 'Table' : 'Log'}</button>
+        <div class="topbar-right">
+          <button class="btn-link" onClick={() => setShowGuide(true)}>Guide</button>
+          <button class="btn-link" onClick={() => setShowLog(!showLog)}>{showLog ? 'Table' : 'Log'}</button>
+        </div>
       </header>
 
       <div class="table-area">
@@ -214,6 +248,19 @@ export function CashTable({ startingStack, settings, onHandDone, onRebuy, onLeav
           </div>
         )}
 
+        {showCoach && coaching && (
+          <CoachSheet
+            c={coaching}
+            handText={myHandText}
+            position={myPosition}
+            onClose={() => setShowCoach(false)}
+            onGuide={() => {
+              setShowCoach(false);
+              setShowGuide(true);
+            }}
+          />
+        )}
+
         {infoSeat?.profile && (
           <div class="modal-backdrop" onClick={() => setInfoSeat(null)}>
             <div class="modal">
@@ -237,8 +284,12 @@ export function CashTable({ startingStack, settings, onHandDone, onRebuy, onLeav
             </>
           )}
           <div class="hero-info">
-            <div class="hero-hand">{me && !me.folded ? heroHandText(me.hole, board) : me?.folded ? 'Folded' : ''}</div>
-            <div class="hero-stack">Stack {chips(me ? me.stack : game.human.stack)}</div>
+            <div class="hero-hand">{myHandText}</div>
+            {coaching ? (
+              <CoachSummary c={coaching} onOpen={() => setShowCoach(true)} />
+            ) : (
+              !handOver && <div class="hero-stack">Stack {chips(me ? me.stack : game.human.stack)}</div>
+            )}
             {handOver && me && net !== 0 && (
               <div class={`hero-net ${net > 0 ? 'pos' : 'neg'}`}>
                 {net > 0 ? `You won +${chips(net)}` : `You lost ${chips(-net)}`}
@@ -279,6 +330,14 @@ export function CashTable({ startingStack, settings, onHandDone, onRebuy, onLeav
           </div>
         )}
       </footer>
+
+      {showGuide && (
+        <Guide
+          onClose={() => setShowGuide(false)}
+          highlight={me ? handClass(me.hole) : undefined}
+          initialTab={hand && hand.board.length === 0 ? 'starting' : 'rankings'}
+        />
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { load, save, defaultState, STARTING_BANKROLL, type SavedState } from '../storage/storage';
 import { CashTable, CASH_BUY_IN, CASH_BLINDS } from './CashTable';
 import { chips } from './format';
+import { Guide } from './Guide';
 
 type Screen = 'home' | 'cash';
 
@@ -11,6 +12,7 @@ export function App() {
   const [state, setState] = useState<SavedState>(load);
   const [screen, setScreen] = useState<Screen>('home');
   const [tableStart, setTableStart] = useState(0);
+  const [showGuide, setShowGuide] = useState(false);
 
   const update = (fn: (s: SavedState) => SavedState) =>
     setState((s) => {
@@ -86,6 +88,10 @@ export function App() {
           Cash Game
           <small>Blinds {CASH_BLINDS.small}/{CASH_BLINDS.big} · buy-in {chips(Math.min(CASH_BUY_IN, state.bankroll))}</small>
         </button>
+        <button class="btn btn-secondary btn-big" onClick={() => setShowGuide(true)}>
+          Poker Guide
+          <small>Hand rankings · starting hands · pot odds</small>
+        </button>
         <button class="btn btn-secondary btn-big" disabled>
           Tournament
           <small>Coming soon</small>
@@ -107,6 +113,19 @@ export function App() {
           </div>
         </div>
         <div class="setting">
+          <span>Coach (odds &amp; tips)</span>
+          <div class="seg">
+            {[true, false].map((v) => (
+              <button
+                class={state.settings.coach === v ? 'on' : ''}
+                onClick={() => update((s) => ({ ...s, settings: { ...s.settings, coach: v } }))}
+              >
+                {v ? 'On' : 'Off'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div class="setting">
           <span>Show bot styles</span>
           <div class="seg">
             {[true, false].map((v) => (
@@ -121,6 +140,7 @@ export function App() {
         </div>
         <button class="btn-link reset" onClick={resetBankroll}>Reset bankroll</button>
       </div>
+      {showGuide && <Guide onClose={() => setShowGuide(false)} />}
     </div>
   );
 }

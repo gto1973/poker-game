@@ -4,7 +4,7 @@
  */
 import { type Card, fullDeck } from './cards';
 import { type Rng, createRng } from './rng';
-import { evaluate } from './evaluator';
+import { evaluate, categoryOf } from './evaluator';
 
 export interface EquityOptions {
   /** Our two hole cards. */
@@ -26,6 +26,11 @@ export interface EquityResult {
   /** win + tie share: the fraction of the pot we expect to get. */
   equity: number;
   iterations: number;
+  /**
+   * How often we finish with each hand category by the river, indexed by
+   * HandCategory (0 = high card … 8 = straight flush). Fractions summing to 1.
+   */
+  categories: number[];
 }
 
 export function estimateEquity(opts: EquityOptions): EquityResult {
@@ -41,6 +46,7 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
   let win = 0;
   let tie = 0;
   let share = 0;
+  const cats = new Array<number>(9).fill(0);
   const deck = stub.slice();
   const fullBoard: Card[] = [...board];
   const hand7: Card[] = new Array(7);
@@ -61,6 +67,7 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     hand7[1] = opts.hole[1]!;
     for (let i = 0; i < 5; i++) hand7[i + 2] = fullBoard[i]!;
     const mine = evaluate(hand7);
+    cats[categoryOf(mine)]!++;
 
     let best = 0;
     let bestCount = 0;
@@ -88,6 +95,7 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     lose: (iterations - win - tie) / iterations,
     equity: share / iterations,
     iterations,
+    categories: cats.map((c) => c / iterations),
   };
 }
 
